@@ -22,6 +22,7 @@ audit:
 # Compile the project.
 build:
 	lake build
+	lake env lean audit/OriginalConjecture6.lean
 
 # Print the axioms on which the final theorems depend and check the list.
 axioms:
