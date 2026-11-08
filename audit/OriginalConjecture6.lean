@@ -8,10 +8,19 @@ This is a separate formulation of Conjecture 6 in Aaronson and Ambainis,
 Conjecture 1.7 of the journal version.
 
 The historical `(ε/d)^{O(1)}` is interpreted here as the existence of one
-*uniform positive natural exponent* for all instances. Whether that is the
-intended informal interpretation is a separate mathematical judgment.
+*uniform positive natural exponent* for all instances, with no prefactor.
+This implies a formulation allowing some fixed positive prefactor (take 1).
+For nondegenerate instances under the range [0,1], variance is at most 1/4
+and d is positive, hence ε/d ≤ 1/4. Thus any fixed positive prefactor can
+also be absorbed into a sufficiently larger uniform natural exponent.
+Whether this formalization matches the intended informal interpretation
+remains a separate mathematical judgment.
 
 The definitions below use Mathlib primitives, not PSI's `PrintedConjecture`.
+The cube is {0,1}^N and the squared flip difference is *not* divided by 4.
+On {-1,1}^N, the usual Fourier influence uses a half-difference squared;
+the change of range g(x) = 2p((x+1)/2) - 1 identifies these influences
+while multiplying the variance by 4.
 The one-way bridge imports PSI's theorem only as its premise. This file does
 not establish equivalence of informal formulations or the quantum reduction.
 
@@ -72,6 +81,40 @@ theorem printed_implies_original
   obtain ⟨i, hi⟩ := h N d p (le_of_eq hDegree) hBound' ε hε hVar'
   refine ⟨i, ?_⟩
   simpa only [cubeInfluence, cubeValue] using hi
+
+/-- A non-vacuous 0/1-cube witness: coordinate projection has mean 1/2,
+variance 1/4 and unscaled squared bit-flip influence 1. -/
+private theorem coordinate_sanity :
+    ∃ p : MvPolynomial (Fin 1) ℝ,
+      p.totalDegree = 1 ∧
+      (∀ X : Fin 1 → Bool, 0 ≤ cubeValue 1 p X ∧ cubeValue 1 p X ≤ 1) ∧
+      cubeMean 1 p = (1 : ℝ) / 2 ∧
+      cubeVariance 1 p = (1 : ℝ) / 4 ∧
+      cubeInfluence 1 p 0 = 1 := by
+  let p : MvPolynomial (Fin 1) ℝ := MvPolynomial.X 0
+  let x0 : Fin 1 → Bool := fun _ => false
+  let x1 : Fin 1 → Bool := fun _ => true
+  have h_univ : (Finset.univ : Finset (Fin 1 → Bool)) = {x0, x1} := by decide
+  have h_ne : x0 ≠ x1 := by decide
+  have hsum (F : (Fin 1 → Bool) → ℝ) :
+      (∑ X : Fin 1 → Bool, F X) = F x0 + F x1 := by
+    rw [h_univ]
+    simp [h_ne]
+  have hm : cubeMean 1 p = (1 : ℝ) / 2 := by
+    unfold cubeMean
+    rw [hsum]
+    norm_num [cubeValue, p, x0, x1]
+  have hv : cubeVariance 1 p = (1 : ℝ) / 4 := by
+    unfold cubeVariance
+    rw [hsum]
+    norm_num [cubeValue, p, x0, x1, hm]
+  have hi : cubeInfluence 1 p 0 = 1 := by
+    unfold cubeInfluence
+    rw [hsum]
+    norm_num [cubeValue, p, x0, x1]
+  refine ⟨p, by simp [p], ?_, hm, hv, hi⟩
+  intro X
+  cases h : X 0 <;> simp [cubeValue, p, h]
 
 /-- A consumer of the original-form statement, without assuming the PSI theorem. -/
 theorem historical_conjecture : OriginalConjecture6 :=
