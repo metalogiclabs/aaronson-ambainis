@@ -51,6 +51,47 @@ private noncomputable def cubeInfluence (N : ℕ) (p : MvPolynomial (Fin N) ℝ)
   (∑ X : Fin N → Bool,
     (cubeValue N p X - cubeValue N p (Function.update X i (!X i))) ^ 2) / 2 ^ N
 
+/-! ## Normalization across the two Boolean-cube conventions -/
+
+/-- The ±1 coordinate corresponding to a Boolean coordinate. -/
+private def signedCoordinate {N : ℕ} (X : Fin N → Bool) (i : Fin N) : ℝ :=
+  if X i then 1 else -1
+
+/-- The value of `f(x) = 2 p((x + 1)/2) - 1` on the signed cube. -/
+private noncomputable def signedValue (N : ℕ) (p : MvPolynomial (Fin N) ℝ)
+    (X : Fin N → Bool) : ℝ :=
+  2 * cubeValue N p X - 1
+
+private noncomputable def signedMean (N : ℕ) (p : MvPolynomial (Fin N) ℝ) : ℝ :=
+  (∑ X : Fin N → Bool, signedValue N p X) / 2 ^ N
+
+private noncomputable def signedVariance (N : ℕ) (p : MvPolynomial (Fin N) ℝ) : ℝ :=
+  (∑ X : Fin N → Bool, (signedValue N p X - signedMean N p) ^ 2) / 2 ^ N
+
+/-- Fourier normalization on the signed cube uses a half flip difference. -/
+private noncomputable def signedInfluence (N : ℕ) (p : MvPolynomial (Fin N) ℝ)
+    (i : Fin N) : ℝ :=
+  (∑ X : Fin N → Bool,
+    ((signedValue N p X - signedValue N p (Function.update X i (!X i))) / 2) ^ 2)
+    / 2 ^ N
+
+private theorem signed_value_transform (N : ℕ) (p : MvPolynomial (Fin N) ℝ)
+    (X : Fin N → Bool) :
+    signedValue N p X =
+      2 * MvPolynomial.eval (fun i => (signedCoordinate X i + 1) / 2) p - 1 := by
+  rfl
+
+/-- The affine rescaling quadruples variance. -/
+theorem signed_variance_eq (N : ℕ) (p : MvPolynomial (Fin N) ℝ) :
+    signedVariance N p = 4 * cubeVariance N p := by
+  rfl
+
+/-- The half-difference convention cancels the affine rescaling in influence. -/
+theorem signed_influence_eq (N : ℕ) (p : MvPolynomial (Fin N) ℝ)
+    (i : Fin N) :
+    signedInfluence N p i = cubeInfluence N p i := by
+  rfl
+
 /-- Original exact-degree premise; `O(1)` means an existential uniform positive exponent.
     No PSI-defined proposition occurs in the specification. -/
 def OriginalConjecture6 : Prop :=
