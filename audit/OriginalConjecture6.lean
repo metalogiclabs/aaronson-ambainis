@@ -79,18 +79,42 @@ private theorem signed_value_transform (N : ℕ) (p : MvPolynomial (Fin N) ℝ)
     (X : Fin N → Bool) :
     signedValue N p X =
       2 * MvPolynomial.eval (fun i => (signedCoordinate X i + 1) / 2) p - 1 := by
-  rfl
+  have hcoords : (fun i : Fin N => (signedCoordinate X i + 1) / 2) =
+      (fun i => if X i then (1 : ℝ) else 0) := by
+    funext i
+    cases h : X i <;> simp [signedCoordinate, h]
+  simp only [signedValue, cubeValue, hcoords]
+
+private theorem signed_mean_eq (N : ℕ) (p : MvPolynomial (Fin N) ℝ) :
+    signedMean N p = 2 * cubeMean N p - 1 := by
+  have hcard : (∑ _X : Fin N → Bool, (1 : ℝ)) = (2 : ℝ) ^ N := by
+    simp [Fintype.card_fun]
+  simp only [signedMean, signedValue, cubeMean, Finset.sum_sub_distrib,
+    ← Finset.mul_sum]
+  rw [hcard]
+  have hne : (2 : ℝ) ^ N ≠ 0 := by positivity
+  field_simp
+  ring
 
 /-- The affine rescaling quadruples variance. -/
 theorem signed_variance_eq (N : ℕ) (p : MvPolynomial (Fin N) ℝ) :
     signedVariance N p = 4 * cubeVariance N p := by
-  rfl
+  have h : ∀ X : Fin N → Bool,
+      (2 * cubeValue N p X - 1 - (2 * cubeMean N p - 1)) ^ 2 =
+        4 * (cubeValue N p X - cubeMean N p) ^ 2 := fun X => by ring
+  simp only [signedVariance, cubeVariance, signed_mean_eq, signedValue, h]
+  rw [← Finset.mul_sum, mul_div_assoc]
 
 /-- The half-difference convention cancels the affine rescaling in influence. -/
 theorem signed_influence_eq (N : ℕ) (p : MvPolynomial (Fin N) ℝ)
     (i : Fin N) :
     signedInfluence N p i = cubeInfluence N p i := by
-  rfl
+  have h : ∀ X : Fin N → Bool,
+      ((2 * cubeValue N p X - 1 -
+        (2 * cubeValue N p (Function.update X i (!X i)) - 1)) / 2) ^ 2 =
+        (cubeValue N p X - cubeValue N p (Function.update X i (!X i))) ^ 2 :=
+    fun X => by ring
+  simp only [signedInfluence, cubeInfluence, signedValue, h]
 
 /-- Original exact-degree premise; `O(1)` means an existential uniform positive exponent.
     No PSI-defined proposition occurs in the specification. -/
@@ -164,3 +188,5 @@ theorem historical_conjecture : OriginalConjecture6 :=
 end IndependentAAAudit
 
 #print axioms IndependentAAAudit.historical_conjecture
+#print axioms IndependentAAAudit.signed_variance_eq
+#print axioms IndependentAAAudit.signed_influence_eq
