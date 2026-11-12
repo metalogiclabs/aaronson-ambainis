@@ -88,13 +88,12 @@ private theorem signed_value_transform (N : ℕ) (p : MvPolynomial (Fin N) ℝ)
 private theorem signed_mean_eq (N : ℕ) (p : MvPolynomial (Fin N) ℝ) :
     signedMean N p = 2 * cubeMean N p - 1 := by
   have hcard : (∑ _X : Fin N → Bool, (1 : ℝ)) = (2 : ℝ) ^ N := by
-    simp [Fintype.card_fun]
+    simp
   simp only [signedMean, signedValue, cubeMean, Finset.sum_sub_distrib,
     ← Finset.mul_sum]
   rw [hcard]
   have hne : (2 : ℝ) ^ N ≠ 0 := by positivity
   field_simp
-  ring
 
 /-- The affine rescaling quadruples variance. -/
 theorem signed_variance_eq (N : ℕ) (p : MvPolynomial (Fin N) ℝ) :
