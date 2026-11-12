@@ -51,6 +51,70 @@ private noncomputable def cubeInfluence (N : ℕ) (p : MvPolynomial (Fin N) ℝ)
   (∑ X : Fin N → Bool,
     (cubeValue N p X - cubeValue N p (Function.update X i (!X i))) ^ 2) / 2 ^ N
 
+/-! ## Normalization across the two Boolean-cube conventions -/
+
+/-- The ±1 coordinate corresponding to a Boolean coordinate. -/
+private def signedCoordinate {N : ℕ} (X : Fin N → Bool) (i : Fin N) : ℝ :=
+  if X i then 1 else -1
+
+/-- The value of `f(x) = 2 p((x + 1)/2) - 1` on the signed cube. -/
+private noncomputable def signedValue (N : ℕ) (p : MvPolynomial (Fin N) ℝ)
+    (X : Fin N → Bool) : ℝ :=
+  2 * cubeValue N p X - 1
+
+private noncomputable def signedMean (N : ℕ) (p : MvPolynomial (Fin N) ℝ) : ℝ :=
+  (∑ X : Fin N → Bool, signedValue N p X) / 2 ^ N
+
+private noncomputable def signedVariance (N : ℕ) (p : MvPolynomial (Fin N) ℝ) : ℝ :=
+  (∑ X : Fin N → Bool, (signedValue N p X - signedMean N p) ^ 2) / 2 ^ N
+
+/-- Fourier normalization on the signed cube uses a half flip difference. -/
+private noncomputable def signedInfluence (N : ℕ) (p : MvPolynomial (Fin N) ℝ)
+    (i : Fin N) : ℝ :=
+  (∑ X : Fin N → Bool,
+    ((signedValue N p X - signedValue N p (Function.update X i (!X i))) / 2) ^ 2)
+    / 2 ^ N
+
+private theorem signed_value_transform (N : ℕ) (p : MvPolynomial (Fin N) ℝ)
+    (X : Fin N → Bool) :
+    signedValue N p X =
+      2 * MvPolynomial.eval (fun i => (signedCoordinate X i + 1) / 2) p - 1 := by
+  have hcoords : (fun i : Fin N => (signedCoordinate X i + 1) / 2) =
+      (fun i => if X i then (1 : ℝ) else 0) := by
+    funext i
+    cases h : X i <;> simp [signedCoordinate, h]
+  simp only [signedValue, cubeValue, hcoords]
+
+private theorem signed_mean_eq (N : ℕ) (p : MvPolynomial (Fin N) ℝ) :
+    signedMean N p = 2 * cubeMean N p - 1 := by
+  have hcard : (∑ _X : Fin N → Bool, (1 : ℝ)) = (2 : ℝ) ^ N := by
+    simp
+  simp only [signedMean, signedValue, cubeMean, Finset.sum_sub_distrib,
+    ← Finset.mul_sum]
+  rw [hcard]
+  have hne : (2 : ℝ) ^ N ≠ 0 := by positivity
+  field_simp
+
+/-- The affine rescaling quadruples variance. -/
+theorem signed_variance_eq (N : ℕ) (p : MvPolynomial (Fin N) ℝ) :
+    signedVariance N p = 4 * cubeVariance N p := by
+  have h : ∀ X : Fin N → Bool,
+      (2 * cubeValue N p X - 1 - (2 * cubeMean N p - 1)) ^ 2 =
+        4 * (cubeValue N p X - cubeMean N p) ^ 2 := fun X => by ring
+  simp only [signedVariance, cubeVariance, signed_mean_eq, signedValue, h]
+  rw [← Finset.mul_sum, mul_div_assoc]
+
+/-- The half-difference convention cancels the affine rescaling in influence. -/
+theorem signed_influence_eq (N : ℕ) (p : MvPolynomial (Fin N) ℝ)
+    (i : Fin N) :
+    signedInfluence N p i = cubeInfluence N p i := by
+  have h : ∀ X : Fin N → Bool,
+      ((2 * cubeValue N p X - 1 -
+        (2 * cubeValue N p (Function.update X i (!X i)) - 1)) / 2) ^ 2 =
+        (cubeValue N p X - cubeValue N p (Function.update X i (!X i))) ^ 2 :=
+    fun X => by ring
+  simp only [signedInfluence, cubeInfluence, signedValue, h]
+
 /-- Original exact-degree premise; `O(1)` means an existential uniform positive exponent.
     No PSI-defined proposition occurs in the specification. -/
 def OriginalConjecture6 : Prop :=
@@ -123,3 +187,5 @@ theorem historical_conjecture : OriginalConjecture6 :=
 end IndependentAAAudit
 
 #print axioms IndependentAAAudit.historical_conjecture
+#print axioms IndependentAAAudit.signed_variance_eq
+#print axioms IndependentAAAudit.signed_influence_eq
